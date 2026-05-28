@@ -6,4 +6,4 @@ env/
 .env
 .pytest_cache/
 data/
-results/
+

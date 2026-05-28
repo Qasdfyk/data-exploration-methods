@@ -1,0 +1,5 @@
+dataset,method,rmse,time_seconds
+Adult,Mean Imputation,0.13078092103077452,0.0
+Adult,Median Imputation,0.13137841930428154,0.0
+Adult,Custom KNN (k=5),0.14464277369474915,1701.736170799937
+Adult,Sklearn KNN (k=5),0.14768039804915195,5.575127899996005

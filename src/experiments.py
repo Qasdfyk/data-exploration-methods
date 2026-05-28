@@ -105,6 +105,42 @@ class ExperimentRunner:
         
         return pd.DataFrame(results)
 
+    def run_weights_comparison(self, dataset_name: str, X_true: np.ndarray, missing_rate: float, k_values: list[int]) -> pd.DataFrame:
+        """Porównuje błąd dla metod agregacji (uniform vs distance)."""
+        results = []
+        X_missing, mask = self.preprocessor.inject_missing_values(X_true, missing_rate, seed=42)
+        true_vals = X_true[mask]
+        
+        for k in k_values:
+            for weight in ['uniform', 'distance']:
+                imputer = KNNImputer(k=k, weights=weight)
+                X_imputed, duration = measure_time(imputer.fit_transform, X_missing)
+                err_rmse = rmse(true_vals, X_imputed[mask])
+                results.append({
+                    "dataset": dataset_name,
+                    "k": k,
+                    "weight": weight,
+                    "rmse": err_rmse,
+                    "time_seconds": duration
+                })
+        return pd.DataFrame(results)
+
+    def run_k_scalability_experiment(self, dataset_name: str, X_true: np.ndarray, k_values: list[int]) -> pd.DataFrame:
+        """Bada narzut czasowy związany z rosnącym parametrem K."""
+        results = []
+        X_sub = X_true[:min(500, X_true.shape[0])]
+        X_missing, _ = self.preprocessor.inject_missing_values(X_sub, 0.1, seed=42)
+        
+        for k in k_values:
+            imputer = KNNImputer(k=k, weights='distance')
+            _, duration = measure_time(imputer.fit_transform, X_missing)
+            results.append({
+                "dataset": dataset_name,
+                "k": k,
+                "time_seconds": duration
+            })
+        return pd.DataFrame(results)
+
     def save_results(self, results: pd.DataFrame, path: str) -> None:
         """Zapisuje wyniki do pliku CSV."""
         os.makedirs(os.path.dirname(path), exist_ok=True)

@@ -1,0 +1,6 @@
+dataset,n_rows,m_cols,time_seconds
+Breast Cancer,100,30,0.6006773000117391
+Breast Cancer,200,30,2.2662675000028685
+Breast Cancer,300,30,5.085685699945316
+Breast Cancer,400,30,8.788798299967311
+Breast Cancer,500,30,13.834884200012311

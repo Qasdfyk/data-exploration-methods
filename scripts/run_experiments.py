@@ -8,7 +8,7 @@ from sklearn.datasets import load_breast_cancer, fetch_openml, make_classificati
 from data_loader import DatasetLoader
 from preprocessing import Preprocessor
 from experiments import ExperimentRunner
-from visualization import plot_metric
+from visualization import plot_metric, plot_bar_chart, plot_multiple_lines
 
 def get_datasets():
     datasets = {}
@@ -21,7 +21,6 @@ def get_datasets():
     
     print("Pobieranie Adult / Census Income...")
     try:
-        # data_home="data" ensures it downloads to local data dir
         adult = fetch_openml(name='adult', version=2, as_frame=True, data_home="data")
         df_adult = adult.frame.dropna()
         if len(df_adult) > 10000:
@@ -60,28 +59,53 @@ def main():
         preprocessor.fit_minmax(X)
         X = preprocessor.transform_minmax(X)
         
-        # 1. Baseline
+        # 1. Baseline i Wykres Słupkowy
         print("--- Uruchamianie testu baseline ---")
         baseline_results = runner.run_baseline_comparison(name, X)
         runner.save_results(baseline_results, f"results/baseline_{name.replace(' ', '_')}.csv")
+        plot_bar_chart(baseline_results, x="method", y="rmse", 
+                       output_path=f"results/baseline_bar_{name.replace(' ', '_')}.png", 
+                       title=f"Porównanie Metod Imputacji (RMSE) - {name}")
         
-        # 2. Jakość
+        # 2. Jakość (Wpływ braków i parametr K na RMSE i MAE)
         print("--- Uruchamianie eksperymentu jakości ---")
         missing_rates = [0.05, 0.15, 0.30]
         k_values = [3, 5, 7, 11]
         
-        X_qual = X
-        if X_qual.shape[0] > 1000:
-            X_qual = X_qual[:1000]
+        X_qual = X if X.shape[0] <= 1000 else X[:1000]
             
         quality_results = runner.run_quality_experiment(name, X_qual, missing_rates, k_values)
         runner.save_results(quality_results, f"results/quality_{name.replace(' ', '_')}.csv")
+        
+        # Dla wybranej wartości k=5 rysujemy RMSE i MAE razem
+        k5_results = quality_results[quality_results['k'] == 5]
+        plot_multiple_lines(k5_results, x="missing_rate", y_cols=["rmse", "mae"], labels=["RMSE", "MAE"],
+                            output_path=f"results/quality_rmse_mae_{name.replace(' ', '_')}.png",
+                            title=f"RMSE vs MAE (K=5) - {name}")
+        
+        # Stary wykres wpływu K na RMSE
         plot_metric(quality_results, x="missing_rate", y="rmse", group="k", 
-                    output_path=f"results/quality_rmse_{name.replace(' ', '_')}.png", 
-                    title=f"RMSE vs Missing Rate ({name})")
+                    output_path=f"results/quality_rmse_k_{name.replace(' ', '_')}.png", 
+                    title=f"Wpływ braków danych i parametru k na RMSE ({name})")
                     
-        # 3. Skalowalność
-        print("--- Uruchamianie eksperymentu skalowalności ---")
+        # 3. Wpływ metody agregacji (Uniform vs Distance)
+        print("--- Uruchamianie eksperymentu wag (Uniform vs Distance) ---")
+        weights_results = runner.run_weights_comparison(name, X_qual, missing_rate=0.15, k_values=k_values)
+        runner.save_results(weights_results, f"results/weights_{name.replace(' ', '_')}.csv")
+        plot_metric(weights_results, x="k", y="rmse", group="weight",
+                    output_path=f"results/weights_comparison_{name.replace(' ', '_')}.png",
+                    title=f"Uniform vs Distance Weighting ({name})")
+                    
+        # 4. Wpływ parametru K na skalowalność czasu
+        print("--- Uruchamianie skalowalności parametru K ---")
+        k_scale_results = runner.run_k_scalability_experiment(name, X, k_values=[3, 5, 9, 15, 21])
+        runner.save_results(k_scale_results, f"results/scalability_k_{name.replace(' ', '_')}.csv")
+        plot_metric(k_scale_results, x="k", y="time_seconds", group="dataset",
+                    output_path=f"results/scalability_k_plot_{name.replace(' ', '_')}.png",
+                    title=f"Czas działania vs parametr K ({name})")
+
+        # 5. Skalowalność (Wiersze / Kolumny)
+        print("--- Uruchamianie eksperymentu skalowalności objętościowej ---")
         if name == 'RNA-Seq':
             row_sizes = [min(50, X.shape[0])]
             col_sizes = [100, 500, 1000, 2000, min(5000, X.shape[1])]

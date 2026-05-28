@@ -1,0 +1,5 @@
+dataset,method,rmse,time_seconds
+Breast Cancer,Mean Imputation,0.14602410021548112,0.0
+Breast Cancer,Median Imputation,0.15010375483190502,0.0
+Breast Cancer,Custom KNN (k=5),0.07670060816378994,27.78822119999677
+Breast Cancer,Sklearn KNN (k=5),0.07874404497107894,0.03399210004135966
