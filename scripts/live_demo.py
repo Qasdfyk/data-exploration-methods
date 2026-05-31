@@ -14,6 +14,7 @@ from data_loader import DatasetLoader
 from preprocessing import Preprocessor
 from knn_imputer import KNNImputer
 from metrics import rmse, mae, measure_time
+from sklearn.metrics import r2_score
 
 def main():
     print("Inicjalizacja dema...")
@@ -50,13 +51,33 @@ def main():
     
     err_rmse = rmse(true_vals, pred_vals)
     err_mae = mae(true_vals, pred_vals)
+    err_r2 = r2_score(true_vals, pred_vals)
+    
+    # Obliczanie Baseline (Średnia) dla porównania
+    X_mean = X_missing.copy()
+    for j in range(X_mean.shape[1]):
+        col = X_mean[:, j]
+        mean_val = np.nanmean(col)
+        X_mean[np.isnan(col), j] = mean_val if not np.isnan(mean_val) else 0.0
+    pred_vals_mean = X_mean[mask]
+    err_rmse_mean = rmse(true_vals, pred_vals_mean)
+    err_mae_mean = mae(true_vals, pred_vals_mean)
     
     print("\n" + "="*40)
     print("--- WYNIKI DEMO NA ŻYWO ---")
     print("="*40)
-    print(f"Czas wykonania: {duration:.4f} sekund  <-- Prawie natychmiast!")
-    print(f"Błąd RMSE:      {err_rmse:.4f}")
-    print(f"Błąd MAE:       {err_mae:.4f}")
+    print(f"Czas wykonania algorytmu kNN: {duration:.4f} sekund")
+    
+    print("\nPorównanie błędu RMSE (mniejszy błąd = wyższa dokładność):")
+    print(f" -> Nasz algorytm kNN:           {err_rmse:.4f} (LEPIEJ)")
+    print(f" -> Zwykłe wstawienie średniej:  {err_rmse_mean:.4f} (GORZEJ)")
+    
+    print("\nPorównanie błędu MAE (mniejszy błąd = wyższa dokładność):")
+    print(f" -> Nasz algorytm kNN:           {err_mae:.4f} (LEPIEJ)")
+    print(f" -> Zwykłe wstawienie średniej:  {err_mae_mean:.4f} (GORZEJ)")
+    
+    print("\nWspółczynnik R2 dla kNN (od 0.0 do 1.0, 1.0 = perfekcja):")
+    print(f" -> Wynik dopasowania:           {err_r2:.4f}")
     
     print("\nPrzykładowe uzupełnione wartości (w oryginalnej skali):")
     missing_indices = np.argwhere(mask)
