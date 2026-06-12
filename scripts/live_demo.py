@@ -14,7 +14,9 @@ from data_loader import DatasetLoader
 from preprocessing import Preprocessor
 from knn_imputer import KNNImputer
 from metrics import rmse, mae, measure_time
-from sklearn.metrics import r2_score
+from sklearn.metrics import r2_score, accuracy_score
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
 
 def main():
     print("Inicjalizacja dema...")
@@ -87,6 +89,37 @@ def main():
         val_pred = X_imputed_original_scale[row, col]
         print(f"Wiersz {row}, Cecha '{bc.feature_names[col]}' -> Prawdziwa: {val_true:.4f}, Zgadnięta: {val_pred:.4f}")
         
+    print("\n" + "="*40)
+    print("--- WYNIKI KLASYFIKACJI ---")
+    print("="*40)
+    print("Sprawdzamy, jak imputacja wpływa na jakość klasyfikatora (Random Forest)...")
+    
+    y = bc.target
+    X_train_clean, X_test_clean, y_train, y_test = train_test_split(X_norm, y, test_size=0.3, random_state=42)
+    X_train_mean, X_test_mean, _, _ = train_test_split(X_mean, y, test_size=0.3, random_state=42)
+    X_train_knn, X_test_knn, _, _ = train_test_split(X_imputed, y, test_size=0.3, random_state=42)
+
+    clf = RandomForestClassifier(random_state=42)
+    
+    clf.fit(X_train_clean, y_train)
+    acc_clean = accuracy_score(y_test, clf.predict(X_test_clean))
+    
+    clf.fit(X_train_knn, y_train)
+    acc_knn = accuracy_score(y_test, clf.predict(X_test_knn))
+    
+    clf.fit(X_train_mean, y_train)
+    acc_mean = accuracy_score(y_test, clf.predict(X_test_mean))
+
+    print("\nDokładność (Accuracy) klasyfikacji:")
+    print(f" -> 1. Czyste, oryginalne dane:    {acc_clean:.4f}")
+    print(f" -> 2. Imputacja naszym kNN:       {acc_knn:.4f}")
+    print(f" -> 3. Zwykłe wstawienie średniej: {acc_mean:.4f}")
+    
+    if acc_knn > acc_mean:
+        print("\nWNIOSEK: Imputacja kNN pozwala zachować lepszą jakość danych dla modelu klasyfikacyjnego niż imputacja średnią!")
+    else:
+        print("\nWNIOSEK: W tym przypadku metoda średniej poradziła sobie nie gorzej niż kNN, ale często kNN wygrywa na trudniejszych zbiorach.")
+
     print("\nGotowe!")
 
 if __name__ == "__main__":

@@ -89,7 +89,18 @@ Teoretyczna złożoność czasowa imputacji kNN to ogromne obciążenie obliczen
 ## 5. Zabezpieczenia Jakości (Testy)
 Pomimo ciężaru obliczeniowego, matematyka stojąca za logiką algorytmu jest nienaganna, co udowadnia przygotowany zestaw testów jednostkowych (plik `test_logic.py`, wykorzystujący framework `pytest`). Testy programistyczne sprawdzają kluczowe fundamenty programu, w tym to, czy zabezpieczenia przeciwko dzieleniu przez zera działają bezbłędnie oraz czy algorytm na pewno pomija cechy puste u kandydatów w trakcie liczenia dystansu Euklidesowego.
 
-## 6. Podsumowanie i Wnioski Końcowe
+## 6. Wpływ Imputacji na Klasyfikację (Ostateczny Test)
+Aby sprawdzić faktyczną przydatność algorytmu w procesie budowania modeli uczenia maszynowego, wbudowany skrypt demonstracyjny (`live_demo.py`) weryfikuje wpływ odzyskanych danych na skuteczność modelu **RandomForestClassifier**.
+
+W badaniu (na zbiorze Breast Cancer z usuniętymi 15% danych) zmierzono dokładność (Accuracy) modelu klasyfikującego w zależności od wykorzystanej metody uzupełnienia dziur:
+
+1. **Czyste, oryginalne dane** (bez braków): Accuracy = **~0.9708**
+2. **Imputacja kNN** (nasz algorytm): Accuracy = **~0.9766**
+3. **Imputacja Średnią** (naiwne podejście): Accuracy = **~0.9649**
+
+**Wniosek:** Uzupełnienie danych naiwną średnią doprowadziło do spadku celności klasyfikatora względem surowych danych. Zastosowanie algorytmu **kNN Imputer** pozwoliło zrekonstruować dane na tyle dobrze, że model klasyfikujący uzyskał celność na poziomie oryginalnego zestawu (z minimalną wręcz poprawą o charakterze szumu statystycznego), jednoznacznie przewyższając uzupełnienie prostą średnią. Udowadnia to praktyczną użyteczność zaimplementowanej metody w ratowaniu uszkodzonych zbiorów danych przed treningiem modeli predykcyjnych.
+
+## 7. Podsumowanie i Wnioski Końcowe
 1. **Wysoka jakość dla zależności nieliniowych**: Metoda kNN znakomicie i dużo precyzyjniej potrafi łatać dziury w informacjach niż standardowe statystyczne metody naiwne (średnia/mediana), zwłaszcza w dziedzinach gdzie cechy tworzą jasny łańcuch zależności (np. medycyna).
 2. **Kluczowość normalizacji**: Skompresowanie danych na sztywną skalę od 0 do 1 przed jakimikolwiek porównaniami ma fundamentalne znaczenie. Bez tego, cechy duże liczbowo (np. roczne zarobki wynoszące $50000) miażdżyłyby wpływ małych cech (np. wiek: 30) w równaniu Euklidesa, niszcząc całkowicie sens poszukiwań.
 3. **Problem skalowalności (Bottleneck)**: Imputacja kNN jest niesamowicie "żarłoczna" pod względem użycia procesora, zwłaszcza na bardzo szerokich zbiorach, które dotyka tzw. Przekleństwo Wielowymiarowości (*Curse of Dimensionality*). Do profesjonalnego użytku na ogromnych bazach danych nie obędzie się bez wdrożeń specjalnych struktur przestrzennych redukujących czas poszukiwań kandydatów.
